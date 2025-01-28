@@ -3,6 +3,8 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django_rest_passwordreset.tokens import get_token_generator
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
+from imagekit.models import ProcessedImageField
+from imagekit.processors import ResizeToFill
 # Create your models here.
 
 STATE_CHOICES = (
@@ -78,10 +80,27 @@ class User(models.Model):
         verbose_name_plural = 'Пользователи',
         ordering = ('email',)
 
+
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    avatar = ProcessedImageField(
+        upload_to='avatars/',
+        processors=[ResizeToFill(200, 200)],
+        format='JPEG',
+        options={'quality': 85},
+        blank=True,
+        null=True
+    )
+
+    def __str__(self):
+        return self.user.username
+
 class Shop(models.Model):
     objects = models.manager.Manager()
     name = models.CharField(max_length=100)
-    user = models.CharField(User, verbose_name='Пользователь', 
+    user = models.ForeignKey(User, verbose_name='Пользователь', 
                              blank=True, null=True, 
                              on_delete=models.CASCADE)
     url = models.URLField(verbose_name='ССылка', null=True, blank=True)
@@ -214,7 +233,7 @@ class InfoProduct(models.Model):
                 models.UniqueConstraint(fields=['product', 'shop', 'appearence'], name='unique_product_info'),
             ]
 
-class ProductParametr(models.Models):
+class ProductParametr(models.Model):
     objects = models.manager.Manager()
     parametr = models.ForeignKey(Parametr, verbose_name='Параметры', 
                                  related_name='Параметры продукта', 
@@ -227,13 +246,14 @@ class ProductParametr(models.Models):
 
 class OrderItem(models.Model):
     objects = models.manager.Manager()
-    order = models.ForeignKey(Order, verbose_name='Заказ',
+    user = models.ForeignKey(Order, verbose_name='Заказ',
                               blank=True,
                               on_delete=models.CASCADE)
     info_product = models.ForeignKey(InfoProduct, verbose_name='Информация о продукте',
                                      blank=True,
                                      on_delete=models.CASCADE)
     value = models.CharField(verbose_name='Значение', max_length=50)
+    quantity = models.PositiveIntegerField(verbose_name='Количество')
 
 
     class Meta:
