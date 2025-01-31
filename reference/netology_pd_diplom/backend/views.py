@@ -13,7 +13,7 @@ from django.db.models import Q, Sum, F
 from ujson import loads as load_json
 from django.db import IntegrityError
 from backend.signals import new_order
-from serializers import OrderSerializer, ContacSerializer, CategorySerializer, ShopSerializer, ProducSerializer, ProductParametrSerializer, InfoProductSerializer, OrderItemSerializer
+from serializers import OrderSerializer, ContactSerializer, CategorySerializer, ShopSerializer, ProductSerializer, ProductParametrSerializer, InfoProductSerializer, OrderItemSerializer
 
 
 # Create your views here.
@@ -23,12 +23,12 @@ from serializers import OrderSerializer, ContacSerializer, CategorySerializer, S
 
 # Регистрация покупателя
 
-class RegiaterAcocunt(APIView):
+class RegisterAccount(APIView):
     def post(self, request, *args, **kwargs):
 
         # Проврка на наличие необходимых аргументов
 
-        if {'firs_name', 'last_name', 'email', 'password', 'company', 'position'}.issubset(request.data):
+        if {'first_name', 'last_name', 'email', 'password', 'company', 'position'}.issubset(request.data):
             
             # Проверка пароля на сложность
             sad = 'asd'
@@ -85,11 +85,13 @@ class AccountDetails(APIView):
         return Response(serealizer.data)
 
 
-
+# Обновление данных учетной записи польззователя
     def post(self, request, *args, **kwargs):
         if not request.user.is_authenticate:
             return JsonResponse({'Status': False, 'Error': 'Требуется войтив систему'}, status = 403)
-        # Проверка обязательных аргументо
+        
+        
+        # Проверка обязательных аргументов
 
         if 'password' in request.date:
             error = {}
@@ -116,7 +118,7 @@ class AccountDetails(APIView):
 
 # Автооризация пользователя
 
-class LoginAccaunt(APIView):
+class LoginAccount(APIView):
 
     def post(self, request, *args, **kwargs):
         if {'email', 'password'}.issubset(request.data):
@@ -132,7 +134,7 @@ class LoginAccaunt(APIView):
 
 
 # Просмотр категорий
-class CategotyView(ListAPIView):
+class CategoryView(ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     
@@ -145,6 +147,7 @@ class ShopView(ListAPIView):
 # Поиск продуктов
 class InfoProductView(APIView):
 
+    #Получение списка продуктов
     def get(self, request: Request, *args, **kwargs):
         query = Q(shop__state = True)
         shop_id = request.query_params.get('shop_id')
@@ -165,18 +168,19 @@ class InfoProductView(APIView):
 # Управление корзиной покупок
 
 class BasketView(APIView):
+    
+    
     # Получить корзину
-
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Требуется войти в систему'}, status=403)
         bascket = Order.objects.filter(user_id = request.user.id, state='basket').prefetch_related('ordered_items__product_info__category', 
                                         'order_items__product_info__product__category', 'ordered_items__product_info__product_parameters__parametr'
-                                        ).annotate(total_sum=Sum(F('ordered_items__quntiti') * F('ordered_items__product_info__price'))).distinct()
+                                        ).annotate(total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
         serializer = OrderItem(bascket, many=True)
         return Response(serializer.data)
 
-        # Редактировать корзину
+        
         # Добавить товар в корзину
     def post(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -258,7 +262,7 @@ class ContactView(APIView):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Требуется войти в систему'}, status=403)
         contact = Contact.objects.filter(user_id = request.user.id)
-        serializer = ContacSerializer(contact, many=True)
+        serializer = ContactSerializer(contact, many=True)
         return Response(serializer.data)
 
 
@@ -269,7 +273,7 @@ class ContactView(APIView):
         if {'city', 'street', 'house'}.issubset(request.data):
             request.data._mutable = True
             request.data.update({'Status': request.user.id})
-            serializer = ContacSerializer(data=request.data)
+            serializer = ContactSerializer(data=request.data)
         
             if serializer.is_valid():
                 serializer.save()
@@ -299,7 +303,7 @@ class ContactView(APIView):
         return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
 
 
-    # Редактировать контакт
+    # Обновить контакт
     def put(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
              return JsonResponse({'Status': False, 'Error': 'Требуется войти в систему'}, status=403)
@@ -309,10 +313,10 @@ class ContactView(APIView):
                 contact = Contact.objects.filter(id=request.data['id'], user_id=request.user.id).first()
                 print(contact)
                 if contact:
-                    serializer = ContacSerializer(contact, data=request.data, patrial=True)
+                    serializer = ContactSerializer(contact, data=request.data, patrial=True)
                     if serializer.is_valid():
                         serializer.save()
-                        return JsonResponse({'Stautus': True})
+                        return JsonResponse({'Status': True})
                     else: 
                         return JsonResponse({'Status': False, "Errors": serializer.errors})
                 return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
@@ -333,7 +337,7 @@ class OrderView(APIView):
         order = Order.objects.filter(user_id=request.user.id).exclude(state='basket').prefetch_related(
                 'ordered_items__product_info__product__category',
                 'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
-                total_sum = Sum(F('ordered_items__quantiti') * F('ordered_items__product_info__price'))).distinct()
+                total_sum = Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
         
         serializer = OrderSerializer(order, many=True)
         return JsonResponse(serializer.data)

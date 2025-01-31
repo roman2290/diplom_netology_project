@@ -82,7 +82,7 @@ class User(models.Model):
 
 
 
-
+# Профиль пользователя
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = ProcessedImageField(
@@ -97,6 +97,8 @@ class UserProfile(models.Model):
     def __str__(self):
         return self.user.username
 
+
+# Модель магазина
 class Shop(models.Model):
     objects = models.manager.Manager()
     name = models.CharField(max_length=100)
@@ -114,6 +116,8 @@ class Shop(models.Model):
     def __str__(self):
         return self.name
 
+
+# Модель поставщика
 class Supplier(models.Model):
     objects = models.manager.Manager()
     name = models.CharField(max_length=100)
@@ -131,7 +135,9 @@ class Supplier(models.Model):
 
     def __str__(self):
         return self.name
-    
+
+
+# Модель контакты
 class Contact(models.Model):
     objects = models.manager.Manager()
     user = models.CharField(max_length=50, verbose_name='Имя')
@@ -148,7 +154,9 @@ class Contact(models.Model):
 
     def __str__(self):
         return f'{self.city} {self.street} {self.house}'
+    
 
+# Модель заказы
 class Order(models.Model):
     objects = models.manager.Manager()
     user = models.ForeignKey(User, verbose_name='Пользователь', 
@@ -170,6 +178,8 @@ class Order(models.Model):
     def __str__(self):
         return str(self.dt)
 
+
+# Продукты
 class Product(models.Model):
     objects = models.manager.Manager()
     name = models.CharField(max_length=100, verbose_name='Название')
@@ -183,6 +193,8 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+
+#Модель категории
 class Category(models.Model):
     objects = models.manager.Manager()
     name = models.ForeignKey(Product, verbose_name='Продукты', 
@@ -198,6 +210,8 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+
+# Модель параметры
 class Parametr(models.Model):
     objects = models.manager.Manager()
     name = models.CharField(max_length=50, verbose_name='Имя')
@@ -210,6 +224,8 @@ class Parametr(models.Model):
     def __str__(self):
         return self.name
 
+
+#Модель информация о продукте
 class InfoProduct(models.Model):
     objects = models.manager.Manager()
     model = models.CharField(max_length=100, verbose_name='Модель', blank=True)
@@ -222,7 +238,7 @@ class InfoProduct(models.Model):
                                 related_name='', 
                                 blank=True,
                                 on_delete=models.CASCADE)
-    quantiti = models.PositiveBigIntegerField(verbose_name='Количество')
+    quantity = models.PositiveBigIntegerField(verbose_name='Количество')
     price = models.PositiveBigIntegerField(verbose_name='Цена')
     price_rss = models.PositiveBigIntegerField(verbose_name='Рекомендуемая розничная цена')
 
@@ -233,6 +249,7 @@ class InfoProduct(models.Model):
                 models.UniqueConstraint(fields=['product', 'shop', 'appearence'], name='unique_product_info'),
             ]
 
+# Модель праметры продукта
 class ProductParametr(models.Model):
     objects = models.manager.Manager()
     parametr = models.ForeignKey(Parametr, verbose_name='Параметры', 
@@ -244,6 +261,7 @@ class ProductParametr(models.Model):
                                  blank=True, 
                                  on_delete=models.CASCADE)
 
+# Промежуточная таблица для связи заказов и и нформации о продукте
 class OrderItem(models.Model):
     objects = models.manager.Manager()
     user = models.ForeignKey(Order, verbose_name='Заказ',
@@ -262,7 +280,9 @@ class OrderItem(models.Model):
         constraint = [
             models.UniqueConstraint(fields=['order_id', 'info_product'], name='unique_order_item')
         ]
-        
+
+
+#Класс для подтверждения электронной почты пользователя
 class ConfirmEmailToken(models.Model):
     object = models.manager.Manager()
     class Meta:
